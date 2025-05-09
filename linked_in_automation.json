@@ -1,0 +1,867 @@
+{
+  "name": "linked in automation",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -280,
+        180
+      ],
+      "id": "8f5b389f-cb1f-432c-b129-7497943c9212",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "url": "https://www.artificialintelligence-news.com/feed/",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.1,
+      "position": [
+        460,
+        180
+      ],
+      "id": "64bc0a18-3722-4ed3-b40f-e2b2b87b813f",
+      "name": "RSS Read"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c5321485-5348-4ca3-83af-3daf61b150d0",
+              "name": "title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "705a2b08-41fa-4764-b533-c855249eac53",
+              "name": "link",
+              "value": "={{ $json.link }}",
+              "type": "string"
+            },
+            {
+              "id": "b56b4d7d-9b6d-468f-a8c6-2ba9f2b13414",
+              "name": "contentSnippet",
+              "value": "={{ $json.contentSnippet }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        680,
+        180
+      ],
+      "id": "289b958f-79d9-431c-85a9-d7d13912007d",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "news",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        900,
+        180
+      ],
+      "id": "86be0246-278f-4c3a-818d-db94dcc3ed74",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=I'm creating a weekly digest from the latest AI articles for SMB executives. \nHelp me to pick 2 articles worth reading for these executives.\nOnly pick the ones that would be interesting for small and medium business owners.\n\n```\n{{ JSON.stringify($json.news) }}\n```",
+        "hasOutputParser": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        1120,
+        180
+      ],
+      "id": "52cb4a90-e85a-4cce-9240-df019a2914b1",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"articles\": [{\n      \"title\": \"\",\n      \"link\": \"\"\n    }]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        1400,
+        420
+      ],
+      "id": "d288f0c0-ebed-4198-939d-44b346e92d5f",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "output.articles",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        460,
+        640
+      ],
+      "id": "76ab2049-7007-417b-b95c-633b28c4ea2a",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.link }}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        640
+      ],
+      "id": "44d839e5-a88b-4c2d-b156-bc65ccfd49f9",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "article",
+              "cssSelector": ".elementor-widget-theme-post-content"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        900,
+        640
+      ],
+      "id": "7c304089-1700-4980-bee0-1acb1a929aec",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "articles",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        640
+      ],
+      "id": "5d45619f-68a9-45a8-bd31-d272c5987897",
+      "name": "Aggregate1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Create a LinkedIn post with the title \"Here is everything that happened in AI this week\" and use the articles below to create an engaging content for SMB business owners.\n\n<instructions>\n- Don't use any markdown for the LinkedIn post as it's not supported (no bold, heading etc.) Use clear text for formatting.\n- Make sure to add the link to the article under its summary.\n- Add a summary of the post (hook) to the beginning of the post. It should consist of 2 short sentences, and needs to grab the attention. Make sure to mention AI in it.\n- also make sure the news summaries explains why it's important for SMB business owners, make it one sentence.\n-Summarize the following articles in no more than 4 sentences total.\n</instructions>\n\n<articles>\n{{ JSON.stringify($json.articles) }}\n</articles>"
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        700,
+        1100
+      ],
+      "id": "5b908aad-1f58-44e0-9552-605c8acb37ca",
+      "name": "Basic LLM Chain1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Rewrite the following linkedin post to match the style of the example post in Gen Z-friendly, plain text LinkedIn post format.\n\n- Add relevant emojis for each point.\n- Keep the tone casual, engaging, and modern.\n- Use plain text only (NO markdown formatting like **bold**, *, or headings).\n- Keep the structure clean: use numbers or emojis for list points, but no stars or formatting characters.\n- End with a short strategic takeaway and call to action.\n\n<ExamplePost>\nAI just did *that* 😮📈\n\nSamsung crushed it this week with 🔥 Galaxy S25 sales (hello, AI-powered everything), but their chip game? Struggling thanks to global drama and trade bans 😬. Even the big dogs feel the heat.\n\nMeanwhile, ServiceNow pulled up with a new AI platform collab'ing with Microsoft, NVIDIA, and Google 💪—basically the Avengers of automation. Visa + Wells Fargo are already on it, saving time *and* money.\n\n📣 SMBs, listen up:  \n➡️ Add smart AI features to your stuff  \n➡️ Automate the boring parts  \n➡️ Stay lean, stay winning\n\nAI’s not a trend—it’s a survival skill. Don’t fall behind 🚀\n\n#AI #SMBs #WorkflowHack #SmartMoves #NextGenTech\n</ExamplePost>\n\n<Article>\n{{ $json.text }}\n</Article>"
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        1100,
+        1100
+      ],
+      "id": "667cc122-b866-4dbf-9afd-d89093c84387",
+      "name": "Basic LLM Chain2"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "khalandarthameem97@gmail.com",
+        "subject": "=[action required] LinkedIn post approval is needed",
+        "message": "={{ $json.linkedin_post }}",
+        "responseType": "customForm",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Do you approve the post?",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "yes"
+                  },
+                  {
+                    "option": "no - I'll add my change requests below"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Change requests",
+              "fieldType": "textarea",
+              "placeholder": "Add your change requests here"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1280,
+        1580
+      ],
+      "id": "cb908386-e052-411b-917b-4d1eabd9ff28",
+      "name": "Gmail",
+      "webhookId": "e3d36e28-f472-4cba-9bc6-6715c6f60ba6",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "8Oe55u0VJTudGWKr",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "298e856c-87fa-4751-a235-eabed33f0f43",
+              "leftValue": "={{ $json.data['Do you approve the post?'] }}",
+              "rightValue": "yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1580,
+        1580
+      ],
+      "id": "2f6bd96b-8669-4fc9-8869-c512150fe231",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Apply the modification requests on the following LinkedIn post. Besides applying the reqested modifications, return the same linkedin post.\n\nLinkedIn post:\n```\n{{ $('Edit Fields1').item.json.linkedin_post }}\n```\n\nChange requests:\n{{ $json.data['Change requests'] }}",
+        "hasOutputParser": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        1200,
+        1940
+      ],
+      "id": "7df4cc34-55aa-4a3b-a0de-8fcfdaca0f89",
+      "name": "Basic LLM Chain3"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"modified_post\": \"\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        1440,
+        2180
+      ],
+      "id": "dbc29e9d-adb5-4c6d-89b3-74b2ca23a708",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a593cd1a-0603-4b52-9d1f-2f2f717651ff",
+              "name": "linkedin_post",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1040,
+        1580
+      ],
+      "id": "7475a9cf-1218-413f-9857-87ad1b43832b",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f2075dc4-d6b0-46d9-aad8-247c054432ec",
+              "name": "text",
+              "value": "={{ $json.output.modified_post }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1580,
+        1940
+      ],
+      "id": "efa06077-b7bb-4fc2-899f-3e2456578fef",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "person": "E4OYXHzSSt",
+        "text": "={{ $('Edit Fields1').item.json.linkedin_post }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [
+        2160,
+        1560
+      ],
+      "id": "30a45719-2ee9-48f7-8ca3-14878d19efc7",
+      "name": "LinkedIn",
+      "credentials": {
+        "linkedInOAuth2Api": {
+          "id": "rKyx6zcqwkfnSphZ",
+          "name": "LinkedIn account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Gather news articles",
+        "height": 80,
+        "width": 920
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        460,
+        60
+      ],
+      "id": "4bb565d9-17fb-413b-98c7-2e5d13568e61",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3474133c-bf58-4e48-aa50-bcebd919dc5b",
+              "name": "your_style",
+              "value": "=Dude... Firecrawl is amazing. Turn any website into LLM-ready data? Yes please. I just made a llms-full.txt of my website (all 80 blog posts! 🥵) using a free account.\n\nI then threw that 250k token .txt file into Gemini for some analysis to...\n- review the ontology of my work and see the big picture\n- psychoanalyze myself (lol of course)\n\namazing, after that I was both feeling proud of myself (🤩) and self-conscious of how obvious my psychological profile is from my published work (😅) so I figured I better make some real progress while I had all this data and an open chat with plenty of headroom in Gemini's sweet sweet 2m context window.\n\nSo I exported my google search console data for the past 3 months to add some analytical context to the content, and threw that into gemini too. Now we're up to ~300k tokens.\n\nI asked it to analyze my SEO and deliver a prioritized plan for improving my strategy.\n\nAnd not only did it give me a really thoughtful overview of my content map, it also was ready to give me an operational plan for improving the overall footprint, my linking strategies, etc. it also gave me some great non-obvious recommendations.\n\nFrankly, this has proven to be extremely effective. Just a year or two ago, this level of SEO analysis & strategic planning would easily have cost me a couple thousand bucks.\n\nBut now... I can do it for free with Claude Desktop + Firecrawl's MCP server, and Gemini 2.0 for 2M context window. \n\nNow... I just need to implement the 2 week plan it wrote for capitalizing on my top performing blogs it affectionately titled \"Stop The Bleeding\" lol, I appreciate Gemini's sense of urgency for improving my funnel.\n\nIt's a pity Squarespace is so poorly positioned for AI augmentation. I 100% have to move away from this platform to something that I can power agentically. \n\nI've thought about Ghost CMS, or building something myself with Lovable. But it's hard to prioritize that at the moment. It's a big lift to migrate a website to a new platform, even in this day and age. There's an opportunity in there somewhere for a hustler.\n\nAnyways, go play with Firecrawl. Well worth it. And if you’ve got this far and you don’t follow me yet… well… you know what to do",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        40,
+        180
+      ],
+      "id": "d55134fb-4712-476f-bcae-5c4642e22510",
+      "name": "Writing style"
+    },
+    {
+      "parameters": {
+        "content": "# Edit your writing style",
+        "height": 340,
+        "width": 190,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b8c52002-91e6-4653-8484-9261f01bf016",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "# Download article content",
+        "height": 80,
+        "width": 760
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        460,
+        520
+      ],
+      "id": "9daba5f5-22c7-416a-a966-4049bb8903e9",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "# Create LinkedIn post content",
+        "height": 80,
+        "width": 620
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        700,
+        980
+      ],
+      "id": "09dc01ee-c01c-43ea-9d6b-ff6749a87db5",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "# Approval process",
+        "height": 120,
+        "width": 640
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        1440
+      ],
+      "id": "2afcbdba-82e4-4c6d-9505-b7de1a26c1d0",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "# Edit the post",
+        "height": 80,
+        "width": 480
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        1820
+      ],
+      "id": "9513c572-ee69-4843-aa72-73bea3bdd9a1",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "# Post to LinkedIn",
+        "height": 260,
+        "width": 320,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2120,
+        1480
+      ],
+      "id": "cdfcd8d6-7f7f-43d1-a8fe-3c535a23b118",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "model": "qwen-qwq-32b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        180,
+        1480
+      ],
+      "id": "e6be5460-ca79-4c84-b78e-d365854df87e",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "7pijUm9nT1hCdjGu",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "qwen-qwq-32b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        540,
+        1840
+      ],
+      "id": "77fb5300-8f2d-460a-a542-c29b663189ec",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "7pijUm9nT1hCdjGu",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "mistral-saba-24b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1780,
+        1340
+      ],
+      "id": "945822e1-2377-48da-ba66-78313539b6d0",
+      "name": "Groq Chat Model3",
+      "credentials": {
+        "groqApi": {
+          "id": "7pijUm9nT1hCdjGu",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "qwen-qwq-32b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        620,
+        1540
+      ],
+      "id": "c7d18e61-fa0a-4b71-b8c7-a4f519f4facb",
+      "name": "Groq Chat Model2",
+      "credentials": {
+        "groqApi": {
+          "id": "7pijUm9nT1hCdjGu",
+          "name": "Groq account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Writing style",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Read": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Aggregate1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate1": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain2": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "LinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Basic LLM Chain3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain3",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain3": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Writing style": {
+      "main": [
+        [
+          {
+            "node": "RSS Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain3",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "c0fd7d1f-7476-44d2-9bfc-7b59722a55b0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b97ead9febe10198f955753de46f9e4ef0ce96f1f338b77284186d6c24b072d0"
+  },
+  "id": "g9PoYxzAWEipPrr9",
+  "tags": []
+}
